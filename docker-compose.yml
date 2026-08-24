@@ -1,0 +1,29 @@
+services:
+  # Published on 6380 so it does not clash with a redis you may already be running.
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
+  provider:
+    build:
+      context: .
+      dockerfile: Dockerfile.provider
+    ports:
+      - "8080:8080"
+    environment:
+      FAKE_PROVIDER_WINDOW: ${FAKE_PROVIDER_WINDOW:-fixed}
+      FAKE_PROVIDER_SEED: ${FAKE_PROVIDER_SEED:-1337}
+      FAKE_PROVIDER_ERROR_RATE: ${FAKE_PROVIDER_ERROR_RATE:-0.01}
+      FAKE_PROVIDER_HANG_RATE: ${FAKE_PROVIDER_HANG_RATE:-0.005}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
